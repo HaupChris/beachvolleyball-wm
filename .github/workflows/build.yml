@@ -26,6 +26,31 @@ jobs:
           echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "SIGNING_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
 
+      # Fails early with a readable message if alias/passwords don't match the keystore (values stay masked).
+      - name: Verify signing key
+        if: env.SIGNING_KEYSTORE != ''
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          for v in SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::warning::$v is empty or not set"; else echo "$v: set"; fi
+          done
+          # An alias matching SIGNING_KEY_ALIAS shows up masked as ***.
+          echo "Keys in keystore:"
+          keytool -list -keystore "$SIGNING_KEYSTORE" -storepass "$SIGNING_STORE_PASSWORD" | grep PrivateKeyEntry | cut -d, -f1 \
+            || { echo "::error::Keystore can't be opened: SIGNING_STORE_PASSWORD wrong or SIGNING_KEYSTORE_BASE64 broken"; exit 1; }
+          keytool -list -keystore "$SIGNING_KEYSTORE" -storepass "$SIGNING_STORE_PASSWORD" -alias "$SIGNING_KEY_ALIAS" > /dev/null \
+            || { echo "::error::SIGNING_KEY_ALIAS not found in keystore (see list above)"; exit 1; }
+          # PKCS12 (keytool default) has a single password; keytool ignores a differing key password, Gradle doesn't.
+          if keytool -list -keystore "$SIGNING_KEYSTORE" -storepass "$SIGNING_STORE_PASSWORD" | grep -q "type: PKCS12" \
+             && [ -n "$SIGNING_KEY_PASSWORD" ] && [ "$SIGNING_KEY_PASSWORD" != "$SIGNING_STORE_PASSWORD" ]; then
+            echo "::error::SIGNING_KEY_PASSWORD differs from SIGNING_STORE_PASSWORD – for this PKCS12 keystore set it to the same value (or delete it)"
+            exit 1
+          fi
+          echo "Signing key OK."
+
       - name: Test and build
         env:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}

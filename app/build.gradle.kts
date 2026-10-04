@@ -28,7 +28,8 @@ android {
                 storeFile = signingKeystore
                 storePassword = System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+                // PKCS12 keystores (keytool default) have a single password, so the key password may be omitted.
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")?.takeIf { it.isNotEmpty() } ?: storePassword
             }
         }
     }
