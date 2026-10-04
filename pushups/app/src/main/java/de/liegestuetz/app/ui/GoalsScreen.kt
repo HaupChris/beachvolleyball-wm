@@ -59,5 +59,12 @@ fun GoalsScreen(totals: Totals) {
             Text("✨ +${Xp.PERFECT_DAY} pro perfektem Tag")
             Text("🔥 +1 pro Serientag obendrauf (max. +${Xp.MAX_STREAK_BONUS})")
         }
+
+        SectionCard {
+            Text("So funktioniert die Serie", style = MaterialTheme.typography.titleMedium)
+            Text("🔥 Jeder perfekte Tag verlängert die Serie.")
+            Text("🩹 Ein einzelner verpasster Tag wird verziehen (zählt aber nicht mit).")
+            Text("💔 Zwei verpasste Tage in Folge beenden die Serie.")
+        }
     }
 }

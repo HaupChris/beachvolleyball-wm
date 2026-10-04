@@ -52,7 +52,7 @@ fun TodayScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("🔥 ${totals.streaks.current}", style = MaterialTheme.typography.displaySmall, color = StatusColors.flame)
-                    Text(if (totals.streaks.current == 1) "Tag in Folge" else "Tage in Folge")
+                    Text(if (totals.streaks.current == 1) "Tag Serie" else "Tage Serie")
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Level ${level.number}", fontWeight = FontWeight.Bold)
@@ -65,6 +65,13 @@ fun TodayScreen(
                 "Noch ${level.xpForNext - level.xpInLevel} XP bis Level ${level.number + 1}",
                 style = MaterialTheme.typography.labelSmall,
             )
+            if (totals.streaks.atRisk) {
+                Text(
+                    "⚠️ Gestern verpasst – heute nicht auslassen, sonst endet deine Serie.",
+                    color = StatusColors.missed,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
 
         SectionCard {

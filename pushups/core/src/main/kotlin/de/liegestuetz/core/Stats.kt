@@ -5,21 +5,44 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
 
-data class Streaks(val current: Int, val longest: Int)
+/** Missed days in a row that end a streak – a single slip is forgiven ("never miss twice"). */
+const val MISSES_TO_BREAK = 2
 
-/** A streak counts consecutive perfect days. An incomplete *today* doesn't break the streak yet. */
-fun History.streaks(): Streaks {
-    var longest = 0
+data class Streaks(
+    val current: Int,
+    val longest: Int,
+    /** The last finished day was missed: missing today as well ends the current streak. */
+    val atRisk: Boolean,
+)
+
+/**
+ * Counts perfect days towards the running streak. A single incomplete day doesn't count, but doesn't end
+ * the streak either; [MISSES_TO_BREAK] incomplete days in a row do. An incomplete *today* is still pending.
+ */
+internal class StreakCounter {
     var run = 0
-    for (d in trackedDays()) {
-        if (d.isComplete) {
+        private set
+    var longest = 0
+        private set
+    var misses = 0
+        private set
+
+    fun add(day: DayRecord, isToday: Boolean) {
+        if (day.isComplete) {
             run++
-        } else if (d.date != today) {
-            run = 0
+            misses = 0
+        } else if (!isToday) {
+            misses++
+            if (misses >= MISSES_TO_BREAK) run = 0
         }
         longest = maxOf(longest, run)
     }
-    return Streaks(current = run, longest = longest)
+}
+
+fun History.streaks(): Streaks {
+    val counter = StreakCounter()
+    for (d in trackedDays()) counter.add(d, isToday = d.date == today)
+    return Streaks(current = counter.run, longest = counter.longest, atRisk = counter.run > 0 && counter.misses > 0)
 }
 
 data class PeriodStats(

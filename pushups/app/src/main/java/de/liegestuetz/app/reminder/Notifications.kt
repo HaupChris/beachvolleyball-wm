@@ -36,10 +36,15 @@ object Notifications {
         createChannel(context)
 
         val repo = Repository.get(context)
-        val streak = repo.state.value.history.streaks().current
+        val streaks = repo.state.value.history.streaks()
+        val streak = streaks.current
         val day = repo.day(LocalDate.now())
         val title = if (day.reps == 0) "💪 Zeit für ${day.target} Liegestütze" else "💪 Noch ${day.remaining} Liegestütze"
-        val text = if (streak > 0) "Halte deine Serie von $streak Tagen am Leben! 🔥" else "Starte heute eine neue Serie!"
+        val text = when {
+            streaks.atRisk -> "Gestern verpasst – heute rettest du deine Serie von $streak Tagen! ⚠️"
+            streak > 0 -> "Halte deine Serie von $streak Tagen am Leben! 🔥"
+            else -> "Starte heute eine neue Serie!"
+        }
 
         val open = PendingIntent.getActivity(
             context, 0,

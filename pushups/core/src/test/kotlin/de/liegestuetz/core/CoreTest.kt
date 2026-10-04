@@ -55,12 +55,39 @@ class CoreTest {
     }
 
     @Test
-    fun `missed day resets streak but keeps longest`() {
+    fun `single missed day is forgiven but does not count`() {
         val today = start.plusDays(6)
         val records = listOf(0L, 1L, 2L, 4L, 5L).map { perfect(start.plusDays(it)) }
         val s = History(records, plan, start, today).streaks()
+        assertEquals(5, s.current)
+        assertEquals(5, s.longest)
+        assertFalse(s.atRisk)
+    }
+
+    @Test
+    fun `two missed days in a row end the streak but keep longest`() {
+        val today = start.plusDays(7)
+        val records = listOf(0L, 1L, 2L, 5L, 6L).map { perfect(start.plusDays(it)) }
+        val s = History(records, plan, start, today).streaks()
         assertEquals(2, s.current)
         assertEquals(3, s.longest)
+    }
+
+    @Test
+    fun `streak is at risk after a missed day until today is done`() {
+        val today = start.plusDays(3)
+        val records = listOf(0L, 1L).map { perfect(start.plusDays(it)) }
+        assertTrue(History(records, plan, start, today).streaks().atRisk)
+        val done = History(records + perfect(today), plan, start, today).streaks()
+        assertFalse(done.atRisk)
+        assertEquals(3, done.current)
+    }
+
+    @Test
+    fun `partial day counts as a miss`() {
+        val today = start.plusDays(4)
+        val records = listOf(perfect(start), rec(start.plusDays(1), 11), rec(start.plusDays(2), 3))
+        assertEquals(0, History(records, plan, start, today).streaks().current)
     }
 
     @Test
@@ -86,6 +113,14 @@ class CoreTest {
         // 84 reps * 1 + 7 * 20 + streak bonus 0+1+...+6
         assertEquals(84 + 140 + 21, t.xp)
         assertTrue(t.achievementProgress().first { it.achievement.id == "week_1" }.unlocked)
+    }
+
+    @Test
+    fun `streak bonus continues after a forgiven miss`() {
+        val today = start.plusDays(2)
+        val h = History(listOf(perfect(start), perfect(today)), plan, start, today)
+        // 24 reps + 2 perfect days * 20 + streak bonus 0 + 1
+        assertEquals(24 + 40 + 1, h.totals().xp)
     }
 
     @Test
@@ -117,7 +152,8 @@ class CoreTest {
     @Test
     fun `next goals use current streak for locked streak achievements`() {
         val today = start.plusDays(5)
-        val records = listOf(0L, 1L, 2L, 3L, 5L).map { perfect(start.plusDays(it)) }
+        // Days 3 and 4 missed: the streak restarts on day 5.
+        val records = listOf(0L, 1L, 2L, 5L).map { perfect(start.plusDays(it)) }
         val t = History(records, plan, start, today).totals()
         val streak7 = t.achievementProgress().first { it.achievement.id == "streak_7" }
         assertFalse(streak7.unlocked)

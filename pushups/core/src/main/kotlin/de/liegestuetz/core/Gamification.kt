@@ -22,24 +22,22 @@ data class Totals(
 
 /**
  * XP rules: every rep (up to twice the daily target), plus a bonus per perfect day
- * that grows with the running streak (capped).
+ * that grows with the running streak (capped, same forgiving rule as [streaks]).
  */
 fun History.totals(): Totals {
     var xp = 0
     var reps = 0
     var best = 0
     var perfect = 0
-    var run = 0
+    val streak = StreakCounter()
     for (d in trackedDays()) {
+        streak.add(d, isToday = d.date == today)
         reps += d.reps
         best = maxOf(best, d.reps)
         xp += minOf(d.reps, d.target * Xp.MAX_TARGET_MULTIPLE) * Xp.PER_REP
         if (d.isComplete) {
             perfect++
-            run++
-            xp += Xp.PERFECT_DAY + minOf(run - 1, Xp.MAX_STREAK_BONUS)
-        } else if (d.date != today) {
-            run = 0
+            xp += Xp.PERFECT_DAY + minOf(streak.run - 1, Xp.MAX_STREAK_BONUS)
         }
     }
     return Totals(
@@ -131,7 +129,7 @@ data class AchievementProgress(val achievement: Achievement, val value: Int, val
 val achievements: List<Achievement> = buildList {
     add(Achievement("perfect_1", "🌱", "Guter Start", "Erster perfekter Tag", Metric.PERFECT_DAYS, 1))
     listOf(3 to "🔥", 7 to "📆", 14 to "💪", 30 to "🏅", 60 to "🥈", 100 to "🥇", 365 to "👑").forEach { (n, e) ->
-        add(Achievement("streak_$n", e, "$n-Tage-Streak", "$n perfekte Tage in Folge", Metric.STREAK, n))
+        add(Achievement("streak_$n", e, "$n-Tage-Serie", "Serie von $n perfekten Tagen (ohne zwei Fehltage am Stück)", Metric.STREAK, n))
     }
     listOf(100, 500, 1000, 2500, 5000, 10000).forEach { n ->
         add(Achievement("reps_$n", "🏋️", "$n Liegestütze", "Insgesamt $n Liegestütze", Metric.REPS, n))
