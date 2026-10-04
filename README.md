@@ -29,3 +29,14 @@ keytool -genkeypair -keystore zahnputz.keystore -alias zahnputz -keyalg RSA -key
 base64 -w0 zahnputz.keystore   # → Secret SIGNING_KEYSTORE_BASE64
 ```
 Weitere Secrets: `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` (`zahnputz`), `SIGNING_KEY_PASSWORD`. Den Keystore nicht committen.
+
+---
+
+# Liegestütz-Tracker 💪 (`pushups/`)
+
+Zweite, unabhängige App nach demselben Prinzip: tägliches Ziel (Standard 12 Liegestütze), Serie, Level/XP, Erfolge, Kalender, Statistik, Erinnerungen.
+
+- **Heute**: Wiederholungen per +1/+5/+10 oder „✓ Rest gemacht“ eintragen; mehr als das Ziel zählt (XP bis zum doppelten Ziel)
+- **Erinnerungen**: 1–3 Uhrzeiten, feuern nur, solange das Tagesziel offen ist; Benachrichtigung mit „✓ N gemacht“-Button
+- Eigene `applicationId` (`de.liegestuetz.app`) und eigene Datenbank (`liegestuetz.db`) – läuft parallel zur Zahnputz-App
+- Module: `:pushups-core` (Logik + Tests), `:pushups-app` (Android); CI-Artifact `liegestuetz-apk`
