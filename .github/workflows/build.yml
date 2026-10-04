@@ -34,13 +34,17 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          set -o pipefail
+          # Compare with `sha256sum` of your local keystore to rule out a broken SIGNING_KEYSTORE_BASE64.
+          echo "Keystore: $(stat -c %s "$SIGNING_KEYSTORE") bytes, sha256 $(sha256sum "$SIGNING_KEYSTORE" | cut -c1-16)…"
           for v in SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD; do
             if [ -z "${!v}" ]; then echo "::warning::$v is empty or not set"; else echo "$v: set"; fi
           done
           # An alias matching SIGNING_KEY_ALIAS shows up masked as ***.
           echo "Keys in keystore:"
-          keytool -list -keystore "$SIGNING_KEYSTORE" -storepass "$SIGNING_STORE_PASSWORD" | grep PrivateKeyEntry | cut -d, -f1 \
-            || { echo "::error::Keystore can't be opened: SIGNING_STORE_PASSWORD wrong or SIGNING_KEYSTORE_BASE64 broken"; exit 1; }
+          keytool -list -keystore "$SIGNING_KEYSTORE" -storepass "$SIGNING_STORE_PASSWORD" 2>&1 | grep -v "^Picked up" > "$RUNNER_TEMP/keys.txt" \
+            || { cat "$RUNNER_TEMP/keys.txt"; echo "::error::Keystore can't be opened: SIGNING_STORE_PASSWORD wrong or SIGNING_KEYSTORE_BASE64 broken"; exit 1; }
+          grep -E "PrivateKeyEntry|type:" "$RUNNER_TEMP/keys.txt" | cut -d, -f1
           keytool -list -keystore "$SIGNING_KEYSTORE" -storepass "$SIGNING_STORE_PASSWORD" -alias "$SIGNING_KEY_ALIAS" > /dev/null \
             || { echo "::error::SIGNING_KEY_ALIAS not found in keystore (see list above)"; exit 1; }
           # PKCS12 (keytool default) has a single password; keytool ignores a differing key password, Gradle doesn't.
