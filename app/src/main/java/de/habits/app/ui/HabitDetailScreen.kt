@@ -159,7 +159,7 @@ fun HabitDetailScreen(
 
             HorizontalDivider()
             MonthCalendar(history, onDayClick = { date ->
-                if (habit.measure == Measure.CHECK) onSetAmount(date, checkToggleValue(history, date)) else editDate = date
+                if (isSingleCheck(habit, date)) onSetAmount(date, checkToggleValue(history, date)) else editDate = date
             })
 
             HorizontalDivider()
@@ -290,7 +290,7 @@ private fun DayCell(history: HabitHistory, date: LocalDate, color: Color, onClic
                 style = MaterialTheme.typography.labelMedium,
                 color = if (fill != null) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = if (editable) 1f else 0.4f),
             )
-            if (habit.measure == Measure.COUNT && amount > 0) {
+            if (amount > 0 && (habit.measure == Measure.COUNT || habit.planAt(date).target > 1)) {
                 Text("$amount", style = MaterialTheme.typography.labelSmall, color = if (fill != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

@@ -62,10 +62,11 @@ private data class Template(
     val unit: String = "",
     val days: Set<DayOfWeek> = DayOfWeek.values().toSet(),
     val perWeek: Int? = null,
+    val reminders: List<LocalTime> = emptyList(),
 )
 
 private val templates = listOf(
-    Template("🪥", "Zähneputzen", measure = Measure.COUNT, target = 2, unit = "×"),
+    Template("🪥", "Zähneputzen", target = 2, reminders = listOf(LocalTime.of(7, 30), LocalTime.of(21, 30))),
     Template("🧵", "Zahnseide", days = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)),
     Template("💪", "Liegestütze", measure = Measure.COUNT, target = 20, unit = "Wdh."),
     Template("🏃", "Sport", perWeek = 3),
@@ -76,6 +77,7 @@ private val templates = listOf(
 )
 
 private val durationPresets = listOf(7, 21, 30, 66, 90)
+private const val MAX_TIMES_PER_DAY = 6
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -87,6 +89,7 @@ fun HabitEditor(initial: Habit?, today: LocalDate, onSave: (Habit) -> Unit, onCa
     var color by remember { mutableIntStateOf(initial?.color ?: 0) }
     var direction by remember { mutableStateOf(initial?.direction ?: Direction.BUILD) }
     var measure by remember { mutableStateOf(initial?.measure ?: Measure.CHECK) }
+    var timesPerDay by remember { mutableIntStateOf(plan?.target?.takeIf { initial?.direction == Direction.BUILD && it in 1..MAX_TIMES_PER_DAY } ?: 1) }
     var targetText by remember { mutableStateOf(plan?.target?.takeIf { initial?.measure == Measure.COUNT }?.toString() ?: "10") }
     var unit by remember { mutableStateOf(initial?.unit ?: "") }
     var weekly by remember { mutableStateOf(plan?.schedule is Schedule.PerWeek) }
@@ -103,12 +106,14 @@ fun HabitEditor(initial: Habit?, today: LocalDate, onSave: (Habit) -> Unit, onCa
     fun applyTemplate(t: Template) {
         emoji = t.emoji; name = t.name; direction = t.direction; measure = t.measure
         targetText = t.target.toString(); unit = t.unit
+        timesPerDay = if (t.measure == Measure.CHECK) t.target.coerceIn(1, MAX_TIMES_PER_DAY) else 1
         weekly = t.perWeek != null; t.perWeek?.let { perWeek = it }; days = t.days
+        reminders = t.reminders
     }
 
     val target = when {
         measure == Measure.COUNT -> targetText.toIntOrNull() ?: 0
-        direction == Direction.BUILD -> 1
+        direction == Direction.BUILD -> timesPerDay
         else -> 0
     }
     val perWeekRange = if (direction == Direction.BUILD) 1..7 else 0..6
@@ -166,6 +171,14 @@ fun HabitEditor(initial: Habit?, today: LocalDate, onSave: (Habit) -> Unit, onCa
                 perWeek = perWeek.coerceIn(if (it == Direction.BUILD) 1..7 else 0..6)
             }
             ChoiceRow(listOf("Abhaken" to Measure.CHECK, "Menge" to Measure.COUNT), measure) { measure = it }
+            if (measure == Measure.CHECK && direction == Direction.BUILD) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Wie oft am Tag", Modifier.weight(1f))
+                    FilledTonalButton(onClick = { timesPerDay-- }, enabled = timesPerDay > 1) { Text("−") }
+                    Text("$timesPerDay×", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    FilledTonalButton(onClick = { timesPerDay++ }, enabled = timesPerDay < MAX_TIMES_PER_DAY) { Text("+") }
+                }
+            }
             if (measure == Measure.COUNT) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
@@ -181,7 +194,9 @@ fun HabitEditor(initial: Habit?, today: LocalDate, onSave: (Habit) -> Unit, onCa
             }
             Text(
                 when {
-                    direction == Direction.BUILD && measure == Measure.CHECK -> "Erfüllt, wenn abgehakt."
+                    direction == Direction.BUILD && measure == Measure.CHECK && timesPerDay == 1 -> "Erfüllt, wenn abgehakt."
+                    direction == Direction.BUILD && measure == Measure.CHECK ->
+                        "$timesPerDay Kreise zum Abhaken. Mit $timesPerDay Erinnerungen stehen deren Uhrzeiten unter den Kreisen."
                     direction == Direction.BUILD -> "Erfüllt ab $target ${unit.trim()} am Tag."
                     measure == Measure.CHECK -> "Erfüllt, solange du keinen Ausrutscher einträgst."
                     else -> "Erfüllt, solange du höchstens $target ${unit.trim()} am Tag einträgst."

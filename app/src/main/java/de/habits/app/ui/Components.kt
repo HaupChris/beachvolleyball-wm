@@ -75,7 +75,7 @@ fun scheduleText(h: Habit): String {
 
 /** "30 Wdh." / "höchstens 2 Kaffee" / "" for check habits. */
 fun targetText(h: Habit, target: Int = h.currentPlan.target): String = when {
-    h.measure == Measure.CHECK -> ""
+    h.measure == Measure.CHECK -> if (h.direction == Direction.BUILD && target > 1) "$target× am Tag" else ""
     h.direction == Direction.BUILD -> "$target ${h.unit}".trim()
     else -> "höchstens $target ${h.unit}".trim()
 }
@@ -218,8 +218,19 @@ fun AmountDialog(history: HabitHistory, date: LocalDate, onDismiss: () -> Unit, 
     )
 }
 
-/** Toggle for check habits: done / slipped or not. */
+/** Check habits that are ticked off once a day (or marked as slipped) – a tap toggles them. */
+fun isSingleCheck(h: Habit, date: LocalDate) =
+    h.measure == Measure.CHECK && (h.direction == Direction.QUIT || h.planAt(date).target <= 1)
+
+/** Toggle for single check habits: done / slipped or not. */
 fun checkToggleValue(history: HabitHistory, date: LocalDate): Int = if (history.amount(date) > 0) 0 else 1
+
+/**
+ * Labels for the tick boxes of a multi-check habit: the reminder times if there is one per box
+ * (e.g. 07:30 / 21:30 for brushing teeth), otherwise none.
+ */
+fun checkLabels(h: Habit, count: Int): List<String>? =
+    h.reminders.sorted().takeIf { it.size == count }?.map { it.format(timeFormat) }
 
 @Composable
 fun ColorDot(color: Color, selected: Boolean, onClick: () -> Unit) {

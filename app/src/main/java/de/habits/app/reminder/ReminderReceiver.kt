@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import de.habits.app.data.Repository
+import de.habits.core.Measure
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -16,13 +17,15 @@ class ReminderReceiver : BroadcastReceiver() {
         when (intent.action) {
             ACTION_REMIND -> {
                 val history = state.history(id) ?: return
-                if (ReminderScheduler.needsReminder(history)) Notifications.showReminder(context, history)
                 val index = intent.getIntExtra(EXTRA_INDEX, 0)
+                if (ReminderScheduler.needsReminder(history, index)) Notifications.showReminder(context, history)
                 habit.reminders.getOrNull(index)?.let { ReminderScheduler.scheduleOne(context, id, index, it) }
             }
             ACTION_DONE -> {
                 val target = habit.planAt(state.today).target
-                repo.setAmount(id, state.today, maxOf(repo.amount(id, state.today), target))
+                val amount = repo.amount(id, state.today)
+                // Multi-check habits (e.g. brushing twice) tick off one box, amounts jump to the target.
+                repo.setAmount(id, state.today, if (habit.measure == Measure.CHECK) minOf(amount + 1, target) else maxOf(amount, target))
                 Notifications.cancel(context, id)
             }
         }

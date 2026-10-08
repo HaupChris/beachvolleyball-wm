@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.habits.app.data.AppState
 import de.habits.core.Direction
@@ -86,8 +87,9 @@ fun TodayScreen(
                 h,
                 onOpen = { onOpen(h.habit.id) },
                 onQuick = {
-                    if (h.habit.measure == Measure.CHECK) onSetAmount(h.habit.id, checkToggleValue(h, today)) else amountFor = h
+                    if (isSingleCheck(h.habit, today)) onSetAmount(h.habit.id, checkToggleValue(h, today)) else amountFor = h
                 },
+                onSetAmount = { onSetAmount(h.habit.id, it) },
             )
         }
         item { Spacer(Modifier.height(72.dp)) } // room for the FAB
@@ -111,7 +113,7 @@ private fun isSettled(h: HabitHistory): Boolean {
 }
 
 @Composable
-private fun TodayRow(h: HabitHistory, onOpen: () -> Unit, onQuick: () -> Unit) {
+private fun TodayRow(h: HabitHistory, onOpen: () -> Unit, onQuick: () -> Unit, onSetAmount: (Int) -> Unit) {
     val habit = h.habit
     val today = h.today
     val period = h.periodAt(today)!!
@@ -146,7 +148,20 @@ private fun TodayRow(h: HabitHistory, onOpen: () -> Unit, onQuick: () -> Unit) {
         when {
             habit.direction == Direction.QUIT && habit.measure == Measure.CHECK ->
                 OutlinedButton(onClick = onQuick) { Text(if (amount > 0) "Rückgängig" else "Ausrutscher") }
-            habit.measure == Measure.CHECK -> CheckCircle(done = okToday, color = color, onClick = onQuick)
+            isSingleCheck(habit, today) -> CheckCircle(done = okToday, color = color, onClick = onQuick)
+            habit.measure == Measure.CHECK -> {
+                // One tick box per time of day; ticking fills them up from the left, unticking removes the last.
+                val labels = checkLabels(habit, plan.target)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (i in 0 until plan.target) {
+                        val done = amount > i
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CheckCircle(done = done, color = color, size = 36.dp, onClick = { onSetAmount(if (done) amount - 1 else amount + 1) })
+                            labels?.let { Text(it[i], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        }
+                    }
+                }
+            }
             else -> {
                 val fraction = if (habit.direction == Direction.BUILD) {
                     if (plan.target == 0) 1f else amount.toFloat() / plan.target
@@ -163,10 +178,10 @@ private fun TodayRow(h: HabitHistory, onOpen: () -> Unit, onQuick: () -> Unit) {
 }
 
 @Composable
-private fun CheckCircle(done: Boolean, color: Color, onClick: () -> Unit) {
+private fun CheckCircle(done: Boolean, color: Color, size: Dp = 44.dp, onClick: () -> Unit) {
     Box(
         Modifier
-            .size(44.dp)
+            .size(size)
             .background(if (done) color else MaterialTheme.colorScheme.surfaceVariant, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

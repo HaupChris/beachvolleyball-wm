@@ -10,6 +10,7 @@ import de.habits.core.Direction
 import de.habits.core.Habit
 import de.habits.core.HabitHistory
 import de.habits.core.Lifecycle
+import de.habits.core.Measure
 import de.habits.core.Outcome
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -67,11 +68,22 @@ object ReminderScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-    /** Due today and not settled yet: BUILD not done (weekly: week open and nothing done today), QUIT not slipped. */
-    fun needsReminder(h: HabitHistory): Boolean {
-        if (h.habit.lifecycle(h.today) != Lifecycle.ACTIVE) return false
+    /**
+     * Due today and not settled yet: BUILD not done (weekly: week open and nothing done today), QUIT not slipped.
+     * For multi-check habits with one reminder per box, reminder [index] only fires while box [index] is open.
+     */
+    fun needsReminder(h: HabitHistory, index: Int? = null): Boolean {
+        val habit = h.habit
+        if (habit.lifecycle(h.today) != Lifecycle.ACTIVE) return false
         val period = h.periodAt(h.today) ?: return false
         if (period.outcome != Outcome.PENDING) return false
-        return h.habit.direction == Direction.QUIT || !h.habit.isOk(h.amount(h.today), h.habit.planAt(h.today))
+        if (habit.direction == Direction.QUIT) return true
+        val plan = habit.planAt(h.today)
+        val amount = h.amount(h.today)
+        if (index != null && habit.measure == Measure.CHECK && habit.reminders.size == plan.target) {
+            val slot = habit.reminders.sorted().indexOf(habit.reminders[index])
+            return amount <= slot
+        }
+        return !habit.isOk(amount, plan)
     }
 }

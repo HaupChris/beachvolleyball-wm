@@ -56,6 +56,12 @@ class CoreTest {
     }
 
     @Test
+    fun `check habit ticked off twice a day needs both ticks`() {
+        val h = HabitHistory(habit(target = 2), mapOf(mon to 1, mon.plusDays(1) to 2, mon.plusDays(2) to 1), today = mon.plusDays(2))
+        assertEquals(listOf(Outcome.FAIL, Outcome.SUCCESS, Outcome.PENDING), h.periods.map { it.outcome })
+    }
+
+    @Test
     fun `quit habit - no entry is success, slip fails immediately`() {
         val h = HabitHistory(habit(direction = Direction.QUIT), days(1, 3), today = mon.plusDays(3))
         assertEquals(listOf(Outcome.SUCCESS, Outcome.FAIL, Outcome.SUCCESS, Outcome.FAIL), h.periods.map { it.outcome })
