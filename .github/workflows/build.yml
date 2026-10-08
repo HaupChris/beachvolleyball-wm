@@ -60,14 +60,9 @@ jobs:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon :core:test :app:assembleRelease :pushups-core:test :pushups-app:assembleRelease
+        run: ./gradlew --no-daemon :core:test :app:assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
-          name: zahnputz-apk
+          name: habits-apk
           path: app/build/outputs/apk/release/*.apk
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: liegestuetz-apk
-          path: pushups/app/build/outputs/apk/release/*.apk

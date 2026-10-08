@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stylised tooth, drawn inside the 66dp safe zone of the 108dp adaptive icon. -->
+<!-- Check mark in a ring, inside the 66dp safe zone of the 108dp adaptive icon. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M40,30 C32,30 28,37 29,45 C30,53 34,57 35,64 C36,72 37,80 42,80 C47,80 47,68 54,68 C61,68 61,80 66,80 C71,80 72,72 73,64 C74,57 78,53 79,45 C80,37 76,30 68,30 C62,30 59,34 54,34 C49,34 46,30 40,30 Z" />
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:pathData="M54,29 A25,25 0 1,1 53.99,29 Z" />
     <path
-        android:fillColor="#2E9CCA"
-        android:pathData="M60,40 L63,46 L69,47 L64,51 L66,57 L60,54 L54,57 L56,51 L51,47 L57,46 Z" />
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M42,55 L51,64 L67,46" />
 </vector>
